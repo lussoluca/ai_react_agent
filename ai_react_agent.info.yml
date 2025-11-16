@@ -1,0 +1,6 @@
+name: 'AI ReACT Agent'
+description: 'Provides an AI agent that uses the ReACT framework to interact with users and perform tasks.'
+type: module
+core_version_requirement: ^11
+dependencies:
+  - ai:ai
