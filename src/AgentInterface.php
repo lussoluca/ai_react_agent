@@ -8,14 +8,17 @@ use Drupal\ai\Entity\AiPromptInterface;
 
 interface AgentInterface {
 
-  public function run(
-    bool $streamed
-  ): \Generator; // Changed return type to Generator for streaming Option B.
+  public function run(): void;
 
-  public function withMemoryManager(Memory $memoryManager): AgentInterface;
+  public function withRunContext(RunContext $run_context): AgentInterface;
 
   public function getSystemPrompt(): AiPromptInterface;
 
+  /**
+   * @param \Drupal\ai\OperationType\Chat\Tools\ToolsFunctionOutputInterface[] $tool_calls
+   *
+   * @return void
+   */
   public function executeTools(array $tool_calls): void;
 
 }

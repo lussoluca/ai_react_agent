@@ -4,89 +4,92 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent\Controller;
 
-use Drupal\ai\AiProviderPluginManager;
-use Drupal\ai\Entity\AiPrompt;
-use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
-use Drupal\ai_react_agent\AgentTools;
-use Drupal\ai_react_agent\Memory;
-use Drupal\ai_react_agent\Model;
-use Drupal\ai_react_agent\Payload;
+use Drupal\ai\PluginManager\AiShortTermMemoryPluginManager;
+use Drupal\ai_react_agent\LoadableAgentsTrait;
+use Drupal\ai_react_agent\Observer\ServerSideEventAgentObserver;
+use Drupal\ai_react_agent\RunContext;
 use Drupal\ai_react_agent\Runner;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\EventStreamResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\ServerEvent;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Returns responses for AI ReACT Agent routes.
  */
 final class AiReactAgentController extends ControllerBase {
 
+  use LoadableAgentsTrait;
+
   public function __construct(
-    #[Autowire(service: 'ai.provider')]
-    private readonly AiProviderPluginManager $aiProvider,
-    #[Autowire(service: 'plugin.manager.ai.function_calls')]
-    private readonly FunctionCallPluginManager $functionCallPluginManager,
     protected readonly SharedTempStoreFactory $tempStore,
+    private readonly MessageBusInterface $bus,
+    #[Autowire(service: 'plugin.manager.ai.short_term_memory')]
+    private readonly AiShortTermMemoryPluginManager $aiShortTermMemory,
   ) {}
 
   /**
-   * Builds the response.
+   * Builds the response using Fiber-based streaming.
+   *
+   * This controller uses PHP Fibers to enable true asynchronous streaming:
+   * 1. Agent execution runs inside a Fiber
+   * 2. When payloads are generated, StreamedAgentObserver calls Fiber::suspend()
+   * 3. Control returns to this controller, which outputs the payload immediately
+   * 4. The fiber is resumed to continue agent execution
+   *
+   * This approach allows payloads to be sent to the client as soon as they're
+   * generated, rather than buffering them until the agent completes.
    */
   public function __invoke(Request $request): EventStreamResponse {
     $query = $request->query->get('query');
     $thread_id = $request->query->get('thread_id');
 
-    /** @var \Drupal\ai\Entity\AiPromptInterface $prompt */
-        $prompt = AiPrompt::load('agent_prompt__cms');
-//    $prompt = AiPrompt::load('agent_prompt__agent_prompt');
-
     $self = $this;
 
-    $response = new EventStreamResponse();
+    return new EventStreamResponse(
+      function () use ($self, $query, $thread_id) {
+        $agent = $this->loadAgentFromConfig();
 
-    $response->setCallback(function() use ($query, $thread_id, $prompt, $self) {
-      $agent = new AgentTools(
-        model: new Model(
-          provider: 'openai',
-          modelName: 'gpt-4',
-        ),
-        aiProviderPluginManager: $self->aiProvider,
-        functionCallPluginManager: $self->functionCallPluginManager,
-        systemPrompt: $prompt,
-        observer: function(Payload $payload) {
-          if ($payload->content !== NULL) {
-            yield new ServerEvent($payload->content, type: 'message');
+        $run_context = new RunContext(
+          memoryManager: $this
+            ->aiShortTermMemory
+            ->createInstance('last_n', ['max_messages' => 10]),
+          tempStore: $self->tempStore,
+        );
+        $observer = new ServerSideEventAgentObserver();
+        $run_context->withAgentObserver($observer);
+
+        $runner = new Runner(
+          runContext: $run_context,
+          bus: $self->bus,
+        );
+
+        // Create fiber for agent execution.
+        $agent_fiber = new \Fiber(function () use ($runner, $query, $agent, $thread_id) {
+          $runner->run($query, $agent, $thread_id);
+        });
+
+        // Start the fiber.
+        $agent_fiber->start();
+
+        // Process payloads as they become available.
+        while (!$agent_fiber->isTerminated()) {
+          $payload = $agent_fiber->resume();
+
+          if ($payload !== null) {
+            yield $payload;
           }
-        },
-        ender: function() {
-          yield new ServerEvent('close', type: 'message');
-        },
-        tools: [],
-        maxIterations: 5,
-      );
-
-      $memory = new Memory(
-        memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
-          ->createInstance('last_n', ['max_messages' => 10]),
-        tempStore: $self->tempStore,
-      );
-
-      $runner = new Runner(
-        memory: $memory,
-      );
-
-      $stream = $runner->run($query, $agent, $thread_id);
-      foreach ($stream as $event) {
-        if ($event instanceof ServerEvent) {
-          yield $event;
         }
-      }
-    });
 
-    return $response;
+        // Get any remaining output.
+        $final_payload = $agent_fiber->getReturn();
+        if ($final_payload !== null) {
+          yield $final_payload;
+        }
+      },
+    );
   }
 
 }

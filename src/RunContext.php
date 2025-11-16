@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Drupal\ai_react_agent;
 
 use Drupal\ai\OperationType\Chat\ChatMessage;
-use Drupal\ai\OperationType\Chat\Tools\ToolsFunctionInput;
 use Drupal\ai\OperationType\Chat\Tools\ToolsFunctionOutput;
+use Drupal\ai\OperationType\Chat\Tools\ToolsFunctionOutputInterface;
 use Drupal\ai\Plugin\AiShortTermMemory\AiShortTermMemoryInterface;
+use Drupal\ai_react_agent\Observer\AgentObserver;
+use Drupal\ai_react_agent\Observer\ObserverInvoker;
+use Drupal\ai_react_agent\Tools\MessageInterface;
+use Drupal\ai_react_agent\Tools\ToolOutput;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 
-class Memory {
+class RunContext {
 
   private array $currentHistory;
 
@@ -18,16 +22,26 @@ class Memory {
 
   private string $thread_id;
 
+  protected array $agentObservers = [];
+
+  protected ObserverInvoker $observerInvoker;
+
   public function __construct(
     private readonly AiShortTermMemoryInterface $memoryManager,
     protected readonly SharedTempStoreFactory $tempStore,
   ) {
     $this->currentHistory = $memoryManager->getChatHistory();
     $this->systemPrompt = new ChatMessage('system', '');
+    $this->observerInvoker = new ObserverInvoker();
   }
 
-  public function load(string $thread_id): Memory {
-    $stored_history = $this->tempStore->get('ai_assistant_threads')->get($thread_id) ?? [];
+  public function load(string $thread_id): RunContext {
+    $stored_history = $this
+      ->tempStore
+      ->get('ai_assistant_threads')
+      ->get(
+        $thread_id
+      ) ?? [];
     $this->currentHistory = array_merge($this->currentHistory, $stored_history);
     $this->thread_id = $thread_id;
 
@@ -35,13 +49,16 @@ class Memory {
   }
 
   public function save(): void {
-    $this->tempStore->get('ai_assistant_threads')->set($this->thread_id, $this->currentHistory);
+    $this->tempStore->get('ai_assistant_threads')->set(
+      $this->thread_id,
+      $this->currentHistory
+    );
   }
 
   public function getChatHistory(): array {
     return array_map(function($input) {
       return match (get_class($input)) {
-        ToolCall::class => $this->buildToolInput($input),
+        ToolsFunctionOutput::class => $this->buildToolInput($input),
         ToolOutput::class => $this->buildToolOutput($input),
         default => $input,
       };
@@ -49,44 +66,41 @@ class Memory {
   }
 
   /**
-   * Convert a ToolCall to a ChatCompletion compatible message
+   * Convert a ToolsFunctionOutput to a ChatCompletion compatible message.
    *
-   * @param ToolCall $toolCall
+   * @param ToolsFunctionOutput $toolCall
+   *
+   * @return \Drupal\ai\OperationType\Chat\ChatMessage
    */
-  protected function buildToolInput(ToolCall $toolCall): ChatMessage
-  {
+  protected function buildToolInput(
+    ToolsFunctionOutput $toolCall,
+  ): ChatMessage {
     $message = new ChatMessage('assistant');
-
-    $tool = new ToolsFunctionOutput(
-      input: new ToolsFunctionInput(
-        name: $toolCall->tool,
-      ),
-      tool_id: $toolCall->id,
-      arguments: [],
-    );
-    $message->setTools([$tool]);
+    $message->setTools([$toolCall]);
 
     return $message;
   }
 
   /**
-   * Convert a ToolOutput to a ChatCompletion compatible message
+   * Convert a ToolOutput to a ChatCompletion compatible message.
    *
-   * @param ToolOutput $toolOutput
-   * @return MessageInterface
+   * @param \Drupal\ai_react_agent\Tools\ToolOutput $toolOutput
+   *
+   * @return \Drupal\ai\OperationType\Chat\ChatMessage
    */
-  protected function buildToolOutput(ToolOutput $toolOutput): ChatMessage
-  {
+  protected function buildToolOutput(ToolOutput $toolOutput): ChatMessage {
     $message = new ChatMessage('tool', $toolOutput->content);
     $message->setToolsId($toolOutput->toolCallId);
 
     return $message;
   }
 
-  public function addToHistory(ChatMessage|MessageInterface $message): void {
+  public function addToHistory(
+    ChatMessage | MessageInterface | ToolsFunctionOutputInterface $message,
+  ): void {
     $this->currentHistory[] = $message;
 
-    if ($message instanceof MessageInterface) {
+    if ($message instanceof MessageInterface || $message instanceof ToolsFunctionOutputInterface) {
       $this->save();
 
       return;
@@ -114,5 +128,18 @@ class Memory {
     return end($this->currentHistory);
   }
 
+  public function withAgentObserver(AgentObserver ...$observer): self {
+    $this->agentObservers = array_merge($this->agentObservers, $observer);
+
+    return $this;
+  }
+
+  public function agentObservers(): array {
+    return $this->agentObservers;
+  }
+
+  public function observerInvoker(): ObserverInvoker {
+    return $this->observerInvoker;
+  }
 
 }

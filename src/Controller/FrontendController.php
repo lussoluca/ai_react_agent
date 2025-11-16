@@ -18,7 +18,6 @@ final class FrontendController extends ControllerBase {
 
     $build['content'] = [
       '#type' => 'item',
-      '#markup' => $this->t('It works!'),
       '#attached' => [
         'library' => [
           'ai_react_agent/frontend',

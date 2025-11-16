@@ -4,26 +4,29 @@ namespace Drupal\ai_react_agent\Drush\Commands;
 
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Drupal\ai\AiProviderPluginManager;
-use Drupal\ai\Entity\AiPrompt;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
-use Drupal\ai_react_agent\Agent;
-use Drupal\ai_react_agent\AgentTools;
-use Drupal\ai_react_agent\Memory;
-use Drupal\ai_react_agent\Model;
+use Drupal\ai_react_agent\AgentInterface;
+use Drupal\ai_react_agent\LoadableAgentsTrait;
+use Drupal\ai_react_agent\Observer\AgentObserver;
+use Drupal\ai_react_agent\Payload;
+use Drupal\ai_react_agent\RunContext;
 use Drupal\ai_react_agent\Runner;
+use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\Core\Session\UserSession;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drush\Attributes as CLI;
 use Drush\Commands\AutowireTrait;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpFoundation\ServerEvent;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * A Drush commandfile.
+ * Drush commands for AI ReAct Agent module.
  */
 final class AiReactAgentCommands extends DrushCommands {
 
   use AutowireTrait;
+  use LoadableAgentsTrait;
 
   /**
    * Constructs an AiReactAgentCommands object.
@@ -34,6 +37,8 @@ final class AiReactAgentCommands extends DrushCommands {
     #[Autowire(service: 'plugin.manager.ai.function_calls')]
     private readonly FunctionCallPluginManager $functionCallPluginManager,
     protected readonly SharedTempStoreFactory $tempStore,
+    private readonly MessageBusInterface $bus,
+    private readonly AccountSwitcherInterface $accountSwitcher,
   ) {
     parent::__construct();
   }
@@ -49,7 +54,7 @@ final class AiReactAgentCommands extends DrushCommands {
     $thread_id,
     $options = ['format' => 'table'],
   ): RowsOfFields {
-    $memory = new Memory(
+    $memory = new RunContext(
       memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
         ->createInstance('last_n', ['max_messages' => 10]),
       tempStore: $this->tempStore,
@@ -71,87 +76,49 @@ final class AiReactAgentCommands extends DrushCommands {
   #[CLI\Argument(name: 'query', description: 'The query to process.')]
   #[CLI\Argument(name: 'thread_id', description: 'The thread ID for memory storage.')]
   public function aiReActAgent($query, $thread_id): void {
-    /** @var \Drupal\ai\Entity\AiPromptInterface $prompt */
-    $prompt = AiPrompt::load('agent_prompt__cms');
-    //    $prompt = AiPrompt::load('agent_prompt__agent_prompt');
+    $this->accountSwitcher->switchTo(new UserSession(['uid' => 1]));
 
-    $agent = new AgentTools(
-      model: new Model(
-        provider: 'openai',
-        modelName: 'gpt-4',
-      ),
-      aiProviderPluginManager: $this->aiProvider,
-      functionCallPluginManager: $this->functionCallPluginManager,
-      systemPrompt: $prompt,
-      observer: function($payload) { // Non-generator observer outputs directly
-        echo (string) $payload; // payload implements __toString
-      },
-      ender: function() {
-        echo "\n\n";
-      },
-      tools: [],
-      maxIterations: 5,
-    );
+    $agent = $this->loadAgentFromConfig();
 
-    $memory = new Memory(
+    $run_context = new RunContext(
       memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
         ->createInstance('last_n', ['max_messages' => 10]),
       tempStore: $this->tempStore,
     );
+    $run_context->withAgentObserver(
+      new class extends AgentObserver {
 
-    $runner = new Runner(
-      memory: $memory,
-    );
+        public function onResponse(
+          AgentInterface $agent,
+          Payload\PayloadInterface $payload,
+          RunContext $context,
+        ): void {
+          if ($payload instanceof Payload\EndPayload) {
+            echo "\n";
+          }
 
-    $stream = $runner->run($query, $agent, $thread_id);
-    // Must iterate to execute generator body even if we ignore yielded events.
-    foreach ($stream as $event) {
-      if ($event instanceof ServerEvent) {
-        // ServerEvent yielded; no action needed for CLI output in current design.
-        continue;
+          if ($payload instanceof Payload\ToolPayload) {
+            echo "\n";
+            echo "\033[36m".'Invoking tool: '.$payload->getContent()."\033[0m";
+            echo "\n";
+          }
+
+          if ($payload instanceof Payload\ResponsePayload) {
+            echo $payload->getContent();
+          }
+        }
+
       }
-    }
-  }
-
-  #[CLI\Command(name: 'ai_agent')]
-  #[CLI\Argument(name: 'query', description: 'The query to process.')]
-  #[CLI\Argument(name: 'thread_id', description: 'The thread ID for memory storage.')]
-  public function aiAgent($query, $thread_id): void {
-    /** @var \Drupal\ai\Entity\AiPromptInterface $prompt */
-    $prompt = AiPrompt::load('agent_prompt__agent_prompt');
-
-    $agent = new Agent(
-      model: new Model(
-        provider: 'openai',
-        modelName: 'gpt-4',
-      ),
-      aiProviderPluginManager: $this->aiProvider,
-      systemPrompt: $prompt,
-      tools: [],
-      maxIterations: 5,
-    );
-
-    $memory = new Memory(
-      memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
-        ->createInstance('last_n', ['max_messages' => 10]),
-      tempStore: $this->tempStore,
     );
 
     $runner = new Runner(
-      memory: $memory,
+      runContext: $run_context,
+      bus: $this->bus,
     );
 
-    $output = $runner->run($query, $agent, $thread_id);
+    $runner->run($query, $agent, $thread_id);
 
-    foreach ($output as $message) {
-      // $message may be a StreamedChatMessage or ChatMessage with getText() or other accessors.
-      if (method_exists($message, 'getText')) {
-        echo $message->getText();
-      } elseif (method_exists($message, '__toString')) {
-        echo (string) $message;
-      }
-    }
-    echo "\n";
+    $this->accountSwitcher->switchBack();
   }
 
 }

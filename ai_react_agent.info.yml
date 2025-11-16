@@ -4,3 +4,4 @@ type: module
 core_version_requirement: ^11
 dependencies:
   - ai:ai
+  - sm:sm

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\ai_react_agent;
+namespace Drupal\ai_react_agent\Tools;
 
-class ToolOutput implements MessageInterface {
+readonly class ToolOutput implements MessageInterface {
 
-  public readonly string $role;
+  public string $role;
 
   public function __construct(
-    public readonly string $content,
-    public readonly string $toolCallId,
+    public string $content,
+    public string $toolCallId,
   ) {
     $this->role = MessageInterface::ROLE_TOOL;
   }

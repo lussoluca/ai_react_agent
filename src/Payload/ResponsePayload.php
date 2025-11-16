@@ -1,8 +1,10 @@
 <?php
 
-namespace Drupal\ai_react_agent;
+declare(strict_types=1);
 
-class Payload {
+namespace Drupal\ai_react_agent\Payload;
+
+class ResponsePayload implements PayloadInterface {
 
   public function __construct(
     public ?string $content,
@@ -11,6 +13,10 @@ class Payload {
     public ?int $inputTokens = NULL,
     public ?int $outputTokens = NULL,
   ) {}
+
+  public function getContent(): string {
+    return $this->content ?? '';
+  }
 
   public function __toString(): string {
     return $this->content ?? '';
