@@ -1,7 +1,7 @@
-ai_react_agent.example:
-  path: '/ai-react-agent/example'
+ai_react_agent.react:
+  path: '/ai-react-agent/react'
   defaults:
-    _title: 'Example'
+    _title: 'ReACT'
     _controller: '\Drupal\ai_react_agent\Controller\AiReactAgentController'
   requirements:
     _permission: 'access content'
@@ -11,5 +11,13 @@ ai_react_agent.frontend:
   defaults:
     _title: 'Frontend'
     _controller: '\Drupal\ai_react_agent\Controller\FrontendController'
+  requirements:
+    _permission: 'access content'
+
+ai_react_agent.long_running:
+  path: '/ai-react-agent/long-running'
+  defaults:
+    _title: 'Long running agent'
+    _form: 'Drupal\ai_react_agent\Form\LongRunningForm'
   requirements:
     _permission: 'access content'

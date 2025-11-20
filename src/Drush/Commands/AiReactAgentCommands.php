@@ -8,11 +8,12 @@ use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
 use Drupal\ai_react_agent\AgentInterface;
 use Drupal\ai_react_agent\LoadableAgentsTrait;
 use Drupal\ai_react_agent\Observer\AgentObserver;
-use Drupal\ai_react_agent\Payload;
+use Drupal\ai_react_agent\Payload\EndPayload;
+use Drupal\ai_react_agent\Payload\ToolPayload;
+use Drupal\ai_react_agent\Payload\ResponsePayload;
+use Drupal\ai_react_agent\Payload\PayloadInterface;
 use Drupal\ai_react_agent\RunContext;
 use Drupal\ai_react_agent\Runner;
-use Drupal\Core\Session\AccountSwitcherInterface;
-use Drupal\Core\Session\UserSession;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drush\Attributes as CLI;
 use Drush\Commands\AutowireTrait;
@@ -38,7 +39,6 @@ final class AiReactAgentCommands extends DrushCommands {
     private readonly FunctionCallPluginManager $functionCallPluginManager,
     protected readonly SharedTempStoreFactory $tempStore,
     private readonly MessageBusInterface $bus,
-    private readonly AccountSwitcherInterface $accountSwitcher,
   ) {
     parent::__construct();
   }
@@ -76,10 +76,6 @@ final class AiReactAgentCommands extends DrushCommands {
   #[CLI\Argument(name: 'query', description: 'The query to process.')]
   #[CLI\Argument(name: 'thread_id', description: 'The thread ID for memory storage.')]
   public function aiReActAgent($query, $thread_id): void {
-    $this->accountSwitcher->switchTo(new UserSession(['uid' => 1]));
-
-    $agent = $this->loadAgentFromConfig();
-
     $run_context = new RunContext(
       memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
         ->createInstance('last_n', ['max_messages' => 10]),
@@ -90,35 +86,34 @@ final class AiReactAgentCommands extends DrushCommands {
 
         public function onResponse(
           AgentInterface $agent,
-          Payload\PayloadInterface $payload,
+          PayloadInterface $payload,
           RunContext $context,
         ): void {
-          if ($payload instanceof Payload\EndPayload) {
+          if ($payload instanceof EndPayload) {
             echo "\n";
           }
 
-          if ($payload instanceof Payload\ToolPayload) {
+          if ($payload instanceof ToolPayload) {
             echo "\n";
             echo "\033[36m".'Invoking tool: '.$payload->getContent()."\033[0m";
             echo "\n";
           }
 
-          if ($payload instanceof Payload\ResponsePayload) {
+          if ($payload instanceof ResponsePayload) {
             echo $payload->getContent();
           }
         }
 
       }
     );
+    $run_context->setPrivileged(TRUE);
 
     $runner = new Runner(
       runContext: $run_context,
       bus: $this->bus,
     );
 
-    $runner->run($query, $agent, $thread_id);
-
-    $this->accountSwitcher->switchBack();
+    $runner->run($query, '', $thread_id);
   }
 
 }

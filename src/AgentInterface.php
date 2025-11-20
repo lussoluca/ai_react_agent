@@ -8,6 +8,10 @@ use Drupal\ai\Entity\AiPromptInterface;
 
 interface AgentInterface {
 
+  public function getId(): string;
+
+  public function getRunContext(): RunContext;
+
   public function run(): void;
 
   public function withRunContext(RunContext $run_context): AgentInterface;

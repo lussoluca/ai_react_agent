@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\ai_react_agent;
 
 use Drupal\ai\OperationType\Chat\ChatMessage;
-use Drupal\ai_react_agent\Messenger\RunAgentMessage;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 readonly class Runner {
+
+  use DispatchTrait;
+  use LoadableAgentsTrait;
 
   public function __construct(
     private RunContext $runContext,
@@ -16,17 +18,19 @@ readonly class Runner {
   ) {
   }
 
-  public function run(string $objective, AgentInterface $agent, string $thread_id): void {
+  public function run(string $objective, string $agent_id, string $thread_id, bool $detached = FALSE): void {
     $run_context = $this->runContext->load($thread_id);
 
+    // If this is a new run, add the system prompt to the chat history.
     if (count($run_context->getChatHistory()) === 0) {
+      $agent = $this->loadAgentFromConfig($agent_id);
       $system_prompt = $agent->getSystemPrompt();
       $run_context->addToHistory(new ChatMessage('system', $system_prompt->getPrompt()));
     }
 
     $run_context->addToHistory(new ChatMessage('user', $objective));
-
-    $this->bus->dispatch(new RunAgentMessage($agent->withRunContext($run_context)));
+    $run_context->setDetached($detached);
+    $this->dispatch($agent_id, $run_context, $detached);
   }
 
 }

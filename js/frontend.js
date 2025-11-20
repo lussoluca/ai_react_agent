@@ -50,24 +50,19 @@
           const query = textbox.value.trim();
 
           if (!query) {
-            alert('Per favore inserisci una domanda');
+            alert('Please enter a query.');
             return;
           }
 
           // Clear previous results
-          resultsDiv.innerHTML = '<p>Thinking...</p>';
+          resultsDiv.innerHTML = '<span style="color: #0a65aa">Thinking...</span><br/>';
 
           // Encode query for URL
           const encodedQuery = encodeURIComponent(query);
 
-          const evtSource = new EventSource("/ai-react-agent/example?query=" + encodedQuery + "&thread_id=" + thread_id);
+          const evtSource = new EventSource("/ai-react-agent/react?query=" + encodedQuery + "&thread_id=" + thread_id);
 
           evtSource.onmessage = (event) => {
-            // Clear loading message on first data
-            if (resultsDiv.innerHTML === '<p>Caricamento...</p>') {
-              resultsDiv.innerHTML = '';
-            }
-
             resultsDiv.innerHTML += event.data;
           };
 
@@ -76,12 +71,7 @@
           });
 
           evtSource.addEventListener("tool", (event) => {
-            // Clear loading message on first data
-            if (resultsDiv.innerHTML === '<p>Caricamento...</p>') {
-              resultsDiv.innerHTML = '';
-            }
-
-            resultsDiv.innerHTML += '<br/><span style="color: #0a65aa">' + event.data + '</span><br/>';
+            resultsDiv.innerHTML += '<br/><span style="color: #0a65aa">' + event.data + '...</span><br/>';
           });
 
           evtSource.onerror = (error) => {

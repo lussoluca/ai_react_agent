@@ -12,9 +12,12 @@ use Drupal\ai_react_agent\Observer\AgentObserver;
 use Drupal\ai_react_agent\Observer\ObserverInvoker;
 use Drupal\ai_react_agent\Tools\MessageInterface;
 use Drupal\ai_react_agent\Tools\ToolOutput;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 
 class RunContext {
+
+  use DependencySerializationTrait;
 
   private array $currentHistory;
 
@@ -25,6 +28,10 @@ class RunContext {
   protected array $agentObservers = [];
 
   protected ObserverInvoker $observerInvoker;
+
+  private bool $detached;
+
+  private bool $privileged = false;
 
   public function __construct(
     private readonly AiShortTermMemoryInterface $memoryManager,
@@ -140,6 +147,22 @@ class RunContext {
 
   public function observerInvoker(): ObserverInvoker {
     return $this->observerInvoker;
+  }
+
+  public function setDetached(bool $detached): void {
+    $this->detached = $detached;
+  }
+
+  public function isDetached(): bool {
+    return $this->detached;
+  }
+
+  public function setPrivileged(bool $privileged): void {
+    $this->privileged = $privileged;
+  }
+
+  public function isPrivileged(): bool {
+    return $this->privileged;
   }
 
 }

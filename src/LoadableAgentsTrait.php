@@ -7,7 +7,6 @@ namespace Drupal\ai_react_agent;
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai\Entity\AiPrompt;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
-use Drupal\ai_react_agent\Controller\AiReactAgentController;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 trait LoadableAgentsTrait {
@@ -19,7 +18,7 @@ trait LoadableAgentsTrait {
    *
    * @return \Drupal\ai_react_agent\Agent
    */
-  function loadAgentFromConfig(): Agent {
+  function loadAgentFromConfig(string $agent_id): Agent {
     /** @var \Drupal\ai\Entity\AiPromptInterface $prompt */
     $prompt = AiPrompt::load('agent_prompt__cms');
     //    $prompt = AiPrompt::load('agent_prompt__agent_prompt');

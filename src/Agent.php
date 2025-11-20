@@ -11,16 +11,19 @@ use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\Chat\Tools\ToolsInput;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
-use Drupal\ai_react_agent\Messenger\RunAgentMessage;
 use Drupal\ai_react_agent\Payload\EndPayload;
 use Drupal\ai_react_agent\Tools\ToolOutput;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class Agent implements AgentInterface {
 
+  use DispatchTrait;
+
   private RunContext $runContext;
 
   private int $currentIteration;
+
+  private string $id;
 
   public function __construct(
     private readonly Model $model,
@@ -88,7 +91,7 @@ final class Agent implements AgentInterface {
       $this->currentIteration++;
       if ($this->currentIteration < $this->maxIterations) {
         // Continue running the agent for another iteration.
-        $this->bus->dispatch(new RunAgentMessage($this));
+        $this->dispatch('', $this->runContext, $this->runContext->isDetached());
       }
     }
 
@@ -156,6 +159,14 @@ final class Agent implements AgentInterface {
     $tool->execute();
 
     return $tool->getReadableOutput();
+  }
+
+  public function getId(): string {
+    return $this->id;
+  }
+
+  public function getRunContext(): RunContext {
+    return $this->runContext;
   }
 
 }

@@ -46,29 +46,13 @@ final class AiReactAgentController extends ControllerBase {
     $query = $request->query->get('query');
     $thread_id = $request->query->get('thread_id');
 
-    $self = $this;
-
     return new EventStreamResponse(
-      function () use ($self, $query, $thread_id) {
-        $agent = $this->loadAgentFromConfig();
-
-        $run_context = new RunContext(
-          memoryManager: $this
-            ->aiShortTermMemory
-            ->createInstance('last_n', ['max_messages' => 10]),
-          tempStore: $self->tempStore,
-        );
-        $observer = new ServerSideEventAgentObserver();
-        $run_context->withAgentObserver($observer);
-
-        $runner = new Runner(
-          runContext: $run_context,
-          bus: $self->bus,
-        );
+      function () use ($query, $thread_id) {
+        $runner = $this->getRunner();
 
         // Create fiber for agent execution.
-        $agent_fiber = new \Fiber(function () use ($runner, $query, $agent, $thread_id) {
-          $runner->run($query, $agent, $thread_id);
+        $agent_fiber = new \Fiber(function () use ($runner, $query, $thread_id) {
+          $runner->run($query, '', $thread_id);
         });
 
         // Start the fiber.
@@ -89,6 +73,29 @@ final class AiReactAgentController extends ControllerBase {
           yield $final_payload;
         }
       },
+    );
+  }
+
+  /**
+   * @return \Drupal\ai_react_agent\Runner
+   * @throws \Drupal\Component\Plugin\Exception\PluginException
+   */
+  function getRunner(): Runner {
+    /** @var \Drupal\ai\Plugin\AiShortTermMemory\AiShortTermMemoryInterface $memory_manager */
+    $memory_manager = $this
+      ->aiShortTermMemory
+      ->createInstance('last_n', ['max_messages' => 10]);
+
+    $run_context = new RunContext(
+      memoryManager: $memory_manager,
+      tempStore: $this->tempStore,
+    );
+    $observer = new ServerSideEventAgentObserver();
+    $run_context->withAgentObserver($observer);
+
+    return new Runner(
+      runContext: $run_context,
+      bus: $this->bus,
     );
   }
 
