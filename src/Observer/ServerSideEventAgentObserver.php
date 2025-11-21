@@ -22,7 +22,7 @@ class ServerSideEventAgentObserver extends AgentObserver {
       $event = new ServerEvent('close', 'close');
     }
     elseif ($payload instanceof ToolPayload) {
-      $event = new ServerEvent('Running tool: ' . $payload->getContent(), 'tool');
+      $event = new ServerEvent('Running tool: ' . $payload->getContent().' ('.$payload->arguments['prompt'].')', 'tool');
     }
     else {
       $event = new ServerEvent($payload->getContent());

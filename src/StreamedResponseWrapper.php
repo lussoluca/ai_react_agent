@@ -68,7 +68,10 @@ class StreamedResponseWrapper implements \IteratorAggregate {
             ->agentOnResponse(
               $this->runContext,
               $this->agent,
-              new ToolPayload($tool->getPluginDefinition()['name']
+              new ToolPayload(
+                content: $tool->getPluginDefinition()['name'],
+                name: $toolCallData['name'],
+                arguments: Json::decode($toolCallData['arguments']),
               )
             );
 

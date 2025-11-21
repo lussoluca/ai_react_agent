@@ -55,7 +55,7 @@
           }
 
           // Clear previous results
-          resultsDiv.innerHTML = '<span style="color: #0a65aa">Thinking...</span><br/>';
+          resultsDiv.innerHTML += '<span style="color: #0a65aa">Thinking...</span><br/>';
 
           // Encode query for URL
           const encodedQuery = encodeURIComponent(query);
@@ -67,6 +67,7 @@
           };
 
           evtSource.addEventListener("close", () => {
+            resultsDiv.innerHTML += '<br/>';
             evtSource.close();
           });
 

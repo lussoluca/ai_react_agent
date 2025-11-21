@@ -56,7 +56,10 @@ final class AiReactAgentController extends ControllerBase {
         });
 
         // Start the fiber.
-        $agent_fiber->start();
+        $payload = $agent_fiber->start();
+        if ($payload !== null) {
+          yield $payload;
+        }
 
         // Process payloads as they become available.
         while (!$agent_fiber->isTerminated()) {
