@@ -6,11 +6,19 @@ ai_react_agent.react:
   requirements:
     _permission: 'access content'
 
-ai_react_agent.frontend:
-  path: '/ai-react-agent/frontend'
+ai_react_agent.simple_chat:
+  path: '/ai-react-agent/simple_chat'
   defaults:
-    _title: 'Frontend'
-    _controller: '\Drupal\ai_react_agent\Controller\FrontendController'
+    _title: 'SimpleChat'
+    _controller: '\Drupal\ai_react_agent\Controller\SimpleChatController'
+  requirements:
+    _permission: 'access content'
+
+ai_react_agent.deepchat:
+  path: '/ai-react-agent/deepchat'
+  defaults:
+    _title: 'Deepchat'
+    _controller: '\Drupal\ai_react_agent\Controller\DeepchatController'
   requirements:
     _permission: 'access content'
 

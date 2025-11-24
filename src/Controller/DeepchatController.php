@@ -9,7 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 /**
  * Returns responses for AI ReACT Agent routes.
  */
-final class FrontendController extends ControllerBase {
+final class DeepchatController extends ControllerBase {
 
   /**
    * Builds the response.
@@ -17,10 +17,10 @@ final class FrontendController extends ControllerBase {
   public function __invoke(): array {
 
     $build['content'] = [
-      '#type' => 'item',
+      '#theme' => 'deep_chat',
       '#attached' => [
         'library' => [
-          'ai_react_agent/frontend',
+          'ai_react_agent/deep-chat'
         ],
       ],
     ];

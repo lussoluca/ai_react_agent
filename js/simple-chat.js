@@ -1,7 +1,6 @@
 ((Drupal, drupalSettings) => {
   Drupal.behaviors.frontend = {
     attach(context) {
-      console.log('test');
 
       // find dom element by id 'block-claro-content'
       const element = document.getElementById("block-claro-content");

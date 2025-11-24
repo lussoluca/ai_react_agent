@@ -1,4 +1,8 @@
-frontend:
+simple-chat:
   version: 1.0.0
   js:
-    js/frontend.js: {}
+    js/simple-chat.js: {}
+deep-chat:
+  js:
+    js/deepchat.bundle.js: {  attributes: { type: module }, minified: true }
+    js/chatbot.js: {  attributes: { type: module } }
