@@ -13,12 +13,12 @@ trait DispatchTrait {
 
   private readonly MessageBusInterface $bus;
 
-  public function dispatch(string $agent_id, RunContext $run_context, bool $detached): void {
+  public function dispatch(string $agent_id, RunContext $run_context): void {
     $message = new RunAgentMessage($agent_id, $run_context);
     $envelope = new Envelope(
       message: $message,
       stamps: [
-        new TransportNamesStamp($detached ? 'asynchronous' : 'synchronous' ),
+        new TransportNamesStamp($run_context->isDetached() ? 'asynchronous' : 'synchronous' ),
       ],
     );
 

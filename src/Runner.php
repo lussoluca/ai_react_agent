@@ -24,13 +24,13 @@ readonly class Runner {
     // If this is a new run, add the system prompt to the chat history.
     if (count($run_context->getChatHistory()) === 0) {
       $agent = $this->loadAgentFromConfig($agent_id);
-      $system_prompt = $agent->getSystemPrompt();
-      $run_context->addToHistory(new ChatMessage('system', $system_prompt->getPrompt()));
+      $run_context->addToHistory(new ChatMessage('system', $agent->getSystemPrompt()));
     }
 
     $run_context->addToHistory(new ChatMessage('user', $objective));
     $run_context->setDetached($detached);
-    $this->dispatch($agent_id, $run_context, $detached);
+    $this->dispatch($agent_id, $run_context);
   }
 
 }
+

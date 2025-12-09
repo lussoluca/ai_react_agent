@@ -23,13 +23,12 @@ final class Agent implements AgentInterface {
 
   private int $currentIteration;
 
-  private string $id;
-
   public function __construct(
+    private readonly string $id,
     private readonly Model $model,
     private readonly AiProviderPluginManager $aiProviderPluginManager,
     private readonly FunctionCallPluginManager $functionCallPluginManager,
-    private readonly AiPromptInterface $systemPrompt,
+    private readonly string $systemPrompt,
     private readonly MessageBusInterface $bus,
     private readonly array $tools,
     private readonly int $maxIterations = 5,
@@ -91,7 +90,7 @@ final class Agent implements AgentInterface {
       $this->currentIteration++;
       if ($this->currentIteration < $this->maxIterations) {
         // Continue running the agent for another iteration.
-        $this->dispatch('', $this->runContext, $this->runContext->isDetached());
+        $this->dispatch($this->id, $this->runContext);
       }
     }
 
@@ -109,7 +108,7 @@ final class Agent implements AgentInterface {
     return $this;
   }
 
-  public function getSystemPrompt(): AiPromptInterface {
+  public function getSystemPrompt(): string {
     return $this->systemPrompt;
   }
 

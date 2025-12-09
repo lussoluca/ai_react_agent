@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent;
 
-use Drupal\ai\Entity\AiPromptInterface;
-
 interface AgentInterface {
 
   public function getId(): string;
@@ -16,7 +14,7 @@ interface AgentInterface {
 
   public function withRunContext(RunContext $run_context): AgentInterface;
 
-  public function getSystemPrompt(): AiPromptInterface;
+  public function getSystemPrompt(): string;
 
   /**
    * @param \Drupal\ai\OperationType\Chat\Tools\ToolsFunctionOutputInterface[] $tool_calls

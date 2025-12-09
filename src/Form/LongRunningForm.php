@@ -79,7 +79,7 @@ final class LongRunningForm extends FormBase {
     // Generate a unique thread ID for this example.
     $thread_id = uniqid('thread_', TRUE);
 
-    $runner->run($query, '', $thread_id, TRUE);
+    $runner->run($query, 'drupal_cms_agent', $thread_id, TRUE);
 
     $this->messenger()->addStatus($this->t('The message has been sent.'));
   }

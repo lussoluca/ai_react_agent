@@ -13,6 +13,8 @@ ai_react_agent.simple_chat:
     _controller: '\Drupal\ai_react_agent\Controller\SimpleChatController'
   requirements:
     _permission: 'access content'
+  options:
+    _admin_route: TRUE
 
 ai_react_agent.deepchat:
   path: '/ai-react-agent/deepchat'
@@ -23,9 +25,11 @@ ai_react_agent.deepchat:
     _permission: 'access content'
 
 ai_react_agent.long_running:
-  path: '/ai-react-agent/long-running'
+  path: '/ai-react-agent/long_running'
   defaults:
     _title: 'Long running agent'
     _form: 'Drupal\ai_react_agent\Form\LongRunningForm'
   requirements:
     _permission: 'access content'
+  options:
+    _admin_route: TRUE

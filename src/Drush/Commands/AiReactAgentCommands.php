@@ -113,7 +113,7 @@ final class AiReactAgentCommands extends DrushCommands {
       bus: $this->bus,
     );
 
-    $runner->run($query, '', $thread_id);
+    $runner->run($query, 'drupal_cms_agent', $thread_id);
   }
 
 }

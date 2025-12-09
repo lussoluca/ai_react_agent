@@ -43,16 +43,17 @@ final class AiReactAgentController extends ControllerBase {
    * generated, rather than buffering them until the agent completes.
    */
   public function __invoke(Request $request): EventStreamResponse {
-    $query = $request->query->get('query');
+    $objective = $request->query->get('objective');
+    $agent_id = $request->query->get('agent_id');
     $thread_id = $request->query->get('thread_id');
 
     return new EventStreamResponse(
-      function () use ($query, $thread_id) {
+      function () use ($objective, $agent_id, $thread_id) {
         $runner = $this->getRunner();
 
         // Create fiber for agent execution.
-        $agent_fiber = new \Fiber(function () use ($runner, $query, $thread_id) {
-          $runner->run($query, '', $thread_id);
+        $agent_fiber = new \Fiber(function () use ($runner, $objective, $agent_id, $thread_id) {
+          $runner->run($objective, $agent_id, $thread_id);
         });
 
         // Start the fiber.

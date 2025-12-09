@@ -12,7 +12,7 @@
           const encodedQuery = body.messages[0].text;
 
           try {
-            const evtSource = new EventSource('/ai-react-agent/react?query=' + encodedQuery + '&thread_id=' + thread_id);
+            const evtSource = new EventSource('/ai-react-agent/react?objective=' + encodedQuery + '&agent_id=drupal_cms_agent&thread_id=' + thread_id);
 
             evtSource.onmessage = (event) => {
               signals.onResponse({ text: event.data, role: 'ai' });
