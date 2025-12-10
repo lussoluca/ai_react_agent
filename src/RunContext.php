@@ -33,6 +33,8 @@ class RunContext {
 
   private bool $privileged = false;
 
+  private string $objective;
+
   public function __construct(
     private readonly AiShortTermMemoryInterface $memoryManager,
     protected readonly SharedTempStoreFactory $tempStore,
@@ -163,6 +165,14 @@ class RunContext {
 
   public function isPrivileged(): bool {
     return $this->privileged;
+  }
+
+  public function setObjective(string $objective): void {
+    $this->objective = $objective;
+  }
+
+  public function getObjective(): string {
+    return $this->objective;
   }
 
 }

@@ -95,7 +95,7 @@ final class AiReactAgentCommands extends DrushCommands {
 
           if ($payload instanceof ToolPayload) {
             echo "\n";
-            echo "\033[36m".'Invoking tool: '.$payload->getContent()."\033[0m";
+            echo "\033[36m" . 'Running tool: ' . $payload->getContent() . ' (' . $payload->arguments['prompt'] . ')' . "\033[0m";
             echo "\n";
           }
 

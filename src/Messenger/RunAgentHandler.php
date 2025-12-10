@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent\Messenger;
 
+use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai_react_agent\LoadableAgentsTrait;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\UserSession;
@@ -26,6 +27,15 @@ class RunAgentHandler {
       // Switch to user 1 for privileged operations.
       $this->accountSwitcher->switchTo(new UserSession(['uid' => 1]));
     }
+
+    // If this is a new run, add the system prompt and initial user objective to
+    // the chat history.
+    if (count($run_context->getChatHistory()) === 0) {
+      $agent = $this->loadAgentFromConfig($agent_id);
+      $run_context->addToHistory(new ChatMessage('system', $agent->getSystemPrompt()));
+    }
+
+    $run_context->addToHistory(new ChatMessage('user', $run_context->getObjective()));
 
     $this->loadAgentFromConfig($agent_id)->withRunContext($run_context)->run();
 
