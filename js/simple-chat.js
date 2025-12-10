@@ -12,11 +12,12 @@
         container.style.marginBottom = '20px';
 
         // Create textbox
-        const textbox = document.createElement('input');
+        const textbox = document.createElement('textarea');
         textbox.type = 'text';
         textbox.id = 'ai-query-input';
         textbox.placeholder = 'Insert your question...';
         textbox.style.width = '600px';
+        textbox.style.height = '300px';
         textbox.style.padding = '8px';
         textbox.style.marginRight = '10px';
         textbox.value = '';
