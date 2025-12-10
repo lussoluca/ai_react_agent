@@ -23,19 +23,18 @@ class RunAgentHandler {
     $agent_id = $message->agent_id;
     $run_context = $message->runContext;
 
-    if ($run_context->isPrivileged()) {
-      // Switch to user 1 for privileged operations.
-      $this->accountSwitcher->switchTo(new UserSession(['uid' => 1]));
-    }
-
-    // If this is a new run, add the system prompt and initial user objective to
-    // the chat history.
+    // If this is a new run, add the system prompt to the chat history.
     if (count($run_context->getChatHistory()) === 0) {
       $agent = $this->loadAgentFromConfig($agent_id);
       $run_context->addToHistory(new ChatMessage('system', $agent->getSystemPrompt()));
     }
 
     $run_context->addToHistory(new ChatMessage('user', $run_context->getObjective()));
+
+    if ($run_context->isPrivileged()) {
+      // Switch to user 1 for privileged operations.
+      $this->accountSwitcher->switchTo(new UserSession(['uid' => 1]));
+    }
 
     $this->loadAgentFromConfig($agent_id)->withRunContext($run_context)->run();
 
