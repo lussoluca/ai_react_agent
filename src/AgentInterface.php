@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent;
 
+use Drupal\runner\Task\TaskInterface;
+
 interface AgentInterface {
 
   public function getId(): string;
 
-  public function getRunContext(): RunContext;
+  public function getRunContext(): AiRunContext;
 
-  public function run(): void;
+  public function run(): ?TaskInterface;
 
-  public function withRunContext(RunContext $run_context): AgentInterface;
+  public function withRunContext(AiRunContext $run_context): AgentInterface;
 
   public function getSystemPrompt(): string;
 

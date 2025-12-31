@@ -5,21 +5,18 @@ declare(strict_types=1);
 namespace Drupal\ai_react_agent;
 
 use Drupal\ai\AiProviderPluginManager;
-use Drupal\ai\Entity\AiPromptInterface;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\Chat\Tools\ToolsInput;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
-use Drupal\ai_react_agent\Payload\EndPayload;
 use Drupal\ai_react_agent\Tools\ToolOutput;
-use Symfony\Component\Messenger\MessageBusInterface;
+use Drupal\runner\Task\TaskInterface;
+use Drupal\runner\Task\TaskOutput;
 
 final class Agent implements AgentInterface {
 
-  use DispatchTrait;
-
-  private RunContext $runContext;
+  private AiRunContext $runContext;
 
   private int $currentIteration;
 
@@ -29,14 +26,13 @@ final class Agent implements AgentInterface {
     private readonly AiProviderPluginManager $aiProviderPluginManager,
     private readonly FunctionCallPluginManager $functionCallPluginManager,
     private readonly string $systemPrompt,
-    private readonly MessageBusInterface $bus,
     private readonly array $tools,
     private readonly int $maxIterations = 5,
   ) {
     $this->currentIteration = 0;
   }
 
-  public function run(): void {
+  public function run(): ?TaskInterface {
     /** @var \Drupal\ai\AiProviderInterface $ai_provider */
     $ai_provider = $this
       ->aiProviderPluginManager
@@ -67,8 +63,14 @@ final class Agent implements AgentInterface {
     foreach ($streamed_response as $payload) {
       $this
         ->runContext
-        ->observerInvoker()
-        ->agentOnResponse($this->runContext, $this, $payload);
+        ->getObserverInvoker()
+        ->onMessage(
+          $this->runContext,
+          new TaskOutput(
+            $payload->getContent(),
+            'assistant',
+          ),
+        );
 
       if (isset($payload->content)) {
         $message .= $payload->content;
@@ -89,8 +91,7 @@ final class Agent implements AgentInterface {
     if ($streamed_response->shouldHandleToolCallFlag()) {
       $this->currentIteration++;
       if ($this->currentIteration < $this->maxIterations) {
-        // Continue running the agent for another iteration.
-        $this->dispatch($this->id, $this->runContext);
+        return new ToolTask($this->runContext);
       }
     }
 
@@ -98,11 +99,13 @@ final class Agent implements AgentInterface {
     // example, to close streaming connections.
     $this
       ->runContext
-      ->observerInvoker()
-      ->agentOnResponse($this->runContext, $this, new EndPayload());
+      ->getObserverInvoker()
+      ->onEnd($this->runContext);
+
+    return NULL;
   }
 
-  public function withRunContext(RunContext $run_context): AgentInterface {
+  public function withRunContext(AiRunContext $run_context): AgentInterface {
     $this->runContext = $run_context;
 
     return $this;
@@ -164,7 +167,7 @@ final class Agent implements AgentInterface {
     return $this->id;
   }
 
-  public function getRunContext(): RunContext {
+  public function getRunContext(): AiRunContext {
     return $this->runContext;
   }
 

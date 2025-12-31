@@ -62,9 +62,9 @@
 
           const evtSource = new EventSource("/ai-react-agent/react?objective=" + encodedQuery + "&agent_id=drupal_cms_agent&thread_id=" + thread_id);
 
-          evtSource.onmessage = (event) => {
+          evtSource.addEventListener("assistant", (event) => {
             resultsDiv.innerHTML += event.data;
-          };
+          });
 
           evtSource.addEventListener("close", () => {
             resultsDiv.innerHTML += '<br/>';

@@ -4,32 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent\Observer;
 
-use Drupal\ai_react_agent\AgentInterface;
-use Drupal\ai_react_agent\Payload\EndPayload;
-use Drupal\ai_react_agent\Payload\PayloadInterface;
-use Drupal\ai_react_agent\Payload\ToolPayload;
-use Drupal\ai_react_agent\RunContext;
+use Drupal\ai_react_agent\AiRunContext;
+use Drupal\runner\Observer\Observer;
+use Drupal\runner\RunContext;
+use Drupal\runner\Task\TaskOutput;
 use Symfony\Component\HttpFoundation\ServerEvent;
 
-class ServerSideEventAgentObserver extends AgentObserver {
+class ServerSideEventAgentObserver extends Observer {
 
-  public function onResponse(
-    AgentInterface $agent,
-    PayloadInterface $payload,
-    RunContext $context,
-  ): void {
-    if ($payload instanceof EndPayload) {
-      $event = new ServerEvent('close', 'close');
-    }
-    elseif ($payload instanceof ToolPayload) {
-      $event = new ServerEvent('Running tool: ' . $payload->getContent() . ' (' . $payload->arguments['prompt'] . ')', 'tool');
-    }
-    else {
-      $event = new ServerEvent($payload->getContent());
-    }
+  public function onMessage(RunContext $context, TaskOutput $output): void {
+    assert($context instanceof AiRunContext);
 
-    // Suspend the fiber and send the content immediately.
-    \Fiber::suspend($event);
+    \Fiber::suspend(new ServerEvent($output->content, $output->type));
+  }
+
+  public function onEnd(RunContext $context): void {
+    \Fiber::suspend(new ServerEvent('close', 'close'));
   }
 
 }

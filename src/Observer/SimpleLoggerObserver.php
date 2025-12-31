@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent\Observer;
 
-use Drupal\ai_react_agent\AgentInterface;
-use Drupal\ai_react_agent\Payload\EndPayload;
-use Drupal\ai_react_agent\Payload\PayloadInterface;
-use Drupal\ai_react_agent\Payload\ResponsePayload;
-use Drupal\ai_react_agent\Payload\ToolPayload;
-use Drupal\ai_react_agent\RunContext;
+use Drupal\runner\Observer\Observer;
+use Drupal\runner\RunContext;
+use Drupal\runner\Task\TaskOutput;
 
-class SimpleLoggerObserver extends AgentObserver {
+class SimpleLoggerObserver extends Observer {
 
   private string $accumulatedResponse;
 
@@ -19,23 +16,13 @@ class SimpleLoggerObserver extends AgentObserver {
     $this->accumulatedResponse = '';
   }
 
-  public function onResponse(
-    AgentInterface $agent,
-    PayloadInterface $payload,
-    RunContext $context,
-  ): void {
-    if ($payload instanceof ToolPayload) {
-      $this->accumulatedResponse .= '[Tool Invoked: '.$payload->getContent().']' . PHP_EOL;
-    }
+  public function onMessage(RunContext $context, TaskOutput $output): void {
+    $this->accumulatedResponse .= $output->content;
+  }
 
-    if ($payload instanceof ResponsePayload) {
-      $this->accumulatedResponse .= $payload->getContent();
-    }
-
-    if ($payload instanceof EndPayload) {
-      \Drupal::logger('ai_react_agent')->info($this->accumulatedResponse);
-      $this->accumulatedResponse = '';
-    }
+  public function onEnd(RunContext $context): void {
+    \Drupal::logger('ai_react_agent')->info($this->accumulatedResponse);
+    $this->accumulatedResponse = '';
   }
 
 }

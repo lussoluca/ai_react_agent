@@ -9,8 +9,8 @@ use Drupal\ai\OperationType\Chat\StreamedChatMessageIteratorInterface;
 use Drupal\ai\OperationType\Chat\Tools\ToolsFunctionOutput;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
 use Drupal\ai_react_agent\Payload\ResponsePayload;
-use Drupal\ai_react_agent\Payload\ToolPayload;
 use Drupal\Component\Serialization\Json;
+use Drupal\runner\Task\TaskOutput;
 
 class StreamedResponseWrapper implements \IteratorAggregate {
 
@@ -28,7 +28,7 @@ class StreamedResponseWrapper implements \IteratorAggregate {
     private readonly StreamedChatMessageIteratorInterface $response,
     private readonly AgentInterface $agent,
     private readonly FunctionCallPluginManager $functionCallPluginManager,
-    private readonly RunContext $runContext,
+    private readonly AiRunContext $runContext,
   ) {
     $this->shouldHandleToolCall = FALSE;
   }
@@ -62,17 +62,21 @@ class StreamedResponseWrapper implements \IteratorAggregate {
           $tool = $this
             ->functionCallPluginManager
             ->getFunctionCallFromFunctionName($toolCallData['name']);
+
+          $arguments = Json::decode($toolCallData['arguments']);
           $this
             ->runContext
-            ->observerInvoker()
-            ->agentOnResponse(
+            ->getObserverInvoker()
+            ->onMessage(
               $this->runContext,
-              $this->agent,
-              new ToolPayload(
-                content: $tool->getPluginDefinition()['name'],
-                name: $toolCallData['name'],
-                arguments: Json::decode($toolCallData['arguments']),
-              )
+              new TaskOutput(
+                \sprintf(
+                  'Running tool: %s (%s)',
+                  $tool->getPluginDefinition()['name'],
+                  $arguments['prompt'],
+                ),
+                'tool',
+              ),
             );
 
           $toolCalls[] = $this->handleToolCall($id, $toolCallData);
@@ -123,7 +127,8 @@ class StreamedResponseWrapper implements \IteratorAggregate {
   public function shouldHandleToolCall(
     StreamedChatMessage $response,
   ): bool {
-    $shouldHandleToolCall =  $response->getRaw()['choices'][0]['finish_reason'] === 'tool_calls'
+    $shouldHandleToolCall = $response->getRaw(
+      )['choices'][0]['finish_reason'] === 'tool_calls'
       || $response->getRaw(
       )['choices'][0]['finish_reason'] === 'stop' && !empty($this->capturedToolCalls);
 
@@ -136,12 +141,15 @@ class StreamedResponseWrapper implements \IteratorAggregate {
     return $this->shouldHandleToolCall;
   }
 
-  protected function handleToolCall(?string $id, $toolCallData): ToolsFunctionOutput {
-      $tool = $this
-        ->functionCallPluginManager
-        ->getFunctionCallFromFunctionName($toolCallData['name']);
-      $tool->setToolsId($id ?? NULL);
-      $input = $tool->normalize();
+  protected function handleToolCall(
+    ?string $id,
+    $toolCallData,
+  ): ToolsFunctionOutput {
+    $tool = $this
+      ->functionCallPluginManager
+      ->getFunctionCallFromFunctionName($toolCallData['name']);
+    $tool->setToolsId($id ?? NULL);
+    $input = $tool->normalize();
 
     return new ToolsFunctionOutput(
       input: $input,
