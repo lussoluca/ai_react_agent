@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ai_react_agent\Form;
 
+use Drupal\ai\PluginManager\AiShortTermMemoryPluginManager;
 use Drupal\ai_react_agent\AiRunContext;
 use Drupal\ai_react_agent\AiTaskManager;
 use Drupal\ai_react_agent\LoadableAgentsTrait;
@@ -13,6 +14,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\runner\Runner;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Provides an AI ReACT Agent form.
@@ -25,6 +27,8 @@ final class LongRunningForm extends FormBase {
   public function __construct(
     protected readonly SharedTempStoreFactory $tempStore,
     private readonly Runner $runner,
+    #[Autowire(service: 'plugin.manager.ai.short_term_memory')]
+    private readonly AiShortTermMemoryPluginManager $aiShortTermMemory,
   ) {}
 
   /**
@@ -61,9 +65,13 @@ final class LongRunningForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $thread_id = uniqid('thread_', TRUE);
 
+    /** @var \Drupal\ai\Plugin\AiShortTermMemory\AiShortTermMemoryInterface $memory_manager */
+    $memory_manager = $this
+      ->aiShortTermMemory
+      ->createInstance('last_n', ['max_messages' => 10]);
+
     $run_context = new AiRunContext(
-      memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
-        ->createInstance('last_n', ['max_messages' => 10]),
+      memoryManager: $memory_manager,
       tempStore: $this->tempStore,
       agentId: 'drupal_cms_agent',
       threadId: $thread_id,
