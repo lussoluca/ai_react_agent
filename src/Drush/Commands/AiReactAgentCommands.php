@@ -13,7 +13,6 @@ use Drupal\ai_react_agent\LoadableAgentsTrait;
 use Drupal\ai_react_agent\Tools\ToolOutput;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\runner\Observer\Observer;
-use Drupal\runner\RunContext;
 use Drupal\runner\Runner;
 use Drupal\runner\Task\TaskOutput;
 use Drush\Attributes as CLI;
@@ -111,7 +110,6 @@ final class AiReactAgentCommands extends DrushCommands {
             new class extends Observer {
 
               public function onMessage(
-                RunContext $context,
                 TaskOutput $output,
               ): void {
                 if ($output->type === 'tool') {
@@ -125,7 +123,7 @@ final class AiReactAgentCommands extends DrushCommands {
                 }
               }
 
-              public function onEnd(RunContext $context): void {
+              public function onEnd(): void {
                 echo "\n";
               }
 

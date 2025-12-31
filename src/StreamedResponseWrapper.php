@@ -68,7 +68,6 @@ class StreamedResponseWrapper implements \IteratorAggregate {
             ->runContext
             ->getObserverInvoker()
             ->onMessage(
-              $this->runContext,
               new TaskOutput(
                 \sprintf(
                   'Running tool: %s (%s)',

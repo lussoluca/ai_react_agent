@@ -65,7 +65,6 @@ final class Agent implements AgentInterface {
         ->runContext
         ->getObserverInvoker()
         ->onMessage(
-          $this->runContext,
           new TaskOutput(
             $payload->getContent(),
             'assistant',
@@ -100,7 +99,7 @@ final class Agent implements AgentInterface {
     $this
       ->runContext
       ->getObserverInvoker()
-      ->onEnd($this->runContext);
+      ->onEnd();
 
     return NULL;
   }

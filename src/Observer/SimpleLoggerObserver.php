@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\ai_react_agent\Observer;
 
 use Drupal\runner\Observer\Observer;
-use Drupal\runner\RunContext;
 use Drupal\runner\Task\TaskOutput;
 
 class SimpleLoggerObserver extends Observer {
@@ -16,11 +15,11 @@ class SimpleLoggerObserver extends Observer {
     $this->accumulatedResponse = '';
   }
 
-  public function onMessage(RunContext $context, TaskOutput $output): void {
+  public function onMessage(TaskOutput $output): void {
     $this->accumulatedResponse .= $output->content;
   }
 
-  public function onEnd(RunContext $context): void {
+  public function onEnd(): void {
     \Drupal::logger('ai_react_agent')->info($this->accumulatedResponse);
     $this->accumulatedResponse = '';
   }
