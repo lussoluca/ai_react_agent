@@ -94,7 +94,7 @@ final class AiReactAgentCommands extends DrushCommands {
       memoryManager: \Drupal::service('plugin.manager.ai.short_term_memory')
         ->createInstance('last_n', ['max_messages' => 10]),
       tempStore: $this->tempStore,
-      agentId: 'drupal_cms_agent',
+      agentId: 'drupal_cms_assistant',
       threadId: $thread_id,
       objective: $objective,
     );

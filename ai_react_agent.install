@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Recipe\Recipe;
+use Drupal\Core\Recipe\RecipeRunner;
+
+/**
+ * Implements hook_install().
+ */
+function ai_react_agent_install(bool $is_synching): void {
+  if (!$is_synching) {
+    $recipe = Recipe::createFromDirectory(dirname(\Drupal::getContainer()->getParameter('app.root')) . '/recipes/saplings_ai_agents');
+    RecipeRunner::processRecipe($recipe);
+  }
+}
