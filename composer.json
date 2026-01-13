@@ -18,5 +18,12 @@
     "allow-plugins": {
       "symfony/runtime": true
     }
+  },
+  "extra": {
+    "patches": {
+      "drupal/ai_agents": {
+        "Use named arguments for FunctionCall constraints [https://www.drupal.org/project/ai_agents/issues/3565226]": "https://git.drupalcode.org/project/ai_agents/-/merge_requests/222.diff"
+      }
+    }
   }
 }
