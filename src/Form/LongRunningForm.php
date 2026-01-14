@@ -73,7 +73,7 @@ final class LongRunningForm extends FormBase {
     $run_context = new AiRunContext(
       memoryManager: $memory_manager,
       tempStore: $this->tempStore,
-      agentId: 'drupal_cms_assistant',
+      agentId: 'drupal_cms_agent',
       threadId: $thread_id,
       objective: $form_state->getValue('message'),
     );

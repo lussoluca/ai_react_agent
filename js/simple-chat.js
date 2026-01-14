@@ -60,7 +60,7 @@
           // Encode query for URL
           const encodedQuery = encodeURIComponent(query);
 
-          const evtSource = new EventSource("/ai-react-agent/react?objective=" + encodedQuery + "&agent_id=drupal_cms_assistant&thread_id=" + thread_id);
+          const evtSource = new EventSource("/ai-react-agent/react?objective=" + encodedQuery + "&agent_id=drupal_cms_agent&thread_id=" + thread_id);
 
           evtSource.addEventListener("assistant", (event) => {
             resultsDiv.innerHTML += event.data;
