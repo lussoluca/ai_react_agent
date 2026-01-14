@@ -1,0 +1,28 @@
+{
+  "name": "drupal/ai_react_agent",
+  "description": "Provides an AI agent that uses the ReACT framework to interact with users and perform tasks.",
+  "type": "drupal-module",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "drupal/core": "^11",
+    "drupal/ai": "^1.2",
+    "drupal/runner": "^1",
+    "drupal/ai_agents": "^1.2"
+  },
+  "require-dev": {
+    "drush/drush": "^13",
+    "drupal/ai_provider_amazeeio": "^1.2"
+  },
+  "config": {
+    "allow-plugins": {
+      "symfony/runtime": true
+    }
+  },
+  "extra": {
+    "patches": {
+      "drupal/ai_agents": {
+        "Use named arguments for FunctionCall constraints [https://www.drupal.org/project/ai_agents/issues/3565226]": "https://git.drupalcode.org/project/ai_agents/-/merge_requests/222.diff"
+      }
+    }
+  }
+}

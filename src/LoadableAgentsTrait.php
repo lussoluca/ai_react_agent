@@ -23,11 +23,13 @@ trait LoadableAgentsTrait {
     /** @var \Drupal\ai_agents\Entity\AiAgent $agent_config */
     $agent_config = AiAgent::load($agent_id);
 
+    $config = \Drupal::config('ai.settings')->get('default_providers');
+
     return new Agent(
       id: $agent_config->id(),
       model: new Model(
-        provider: 'openai',
-        modelName: 'gpt-4.1',
+        provider: $config['chat_with_tools']['provider_id'],
+        modelName: $config['chat_with_tools']['model_id'],
       ),
       aiProviderPluginManager: $this->getAiProvider(),
       functionCallPluginManager: $this->getFunctionCallPluginManager(),

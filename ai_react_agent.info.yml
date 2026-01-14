@@ -4,4 +4,5 @@ type: module
 core_version_requirement: ^11
 dependencies:
   - ai:ai
+  - ai_agents:ai_agents
   - runner:runner
